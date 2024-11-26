@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"log"
 	"os"
+	"time"
+
+	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 func main() {
@@ -39,4 +41,31 @@ func main() {
 		log.Print(err)
 		return
 	}
+
+	name := "Victor"
+	phone := "+992000000002"
+
+	result, err := db.ExecContext(ctx, `
+	  INSERT INTO customers(name, phone) VALUES ($1, $2) ON CONFLICT (phone) DO UPDATE SET name = excluded.name;
+	  `, name, phone)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	log.Printf("Количество строк изменено: %d", rowsAffected)
+}
+
+type Customer struct {
+	ID      int64
+	Name    string
+	Phone   string
+	Active  bool
+	Created time.Time
 }
