@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -60,6 +61,32 @@ func main() {
 	}
 
 	log.Printf("Количество строк изменено: %d", rowsAffected)
+
+	customer := &Customer{}
+	err = db.QueryRowContext(ctx, `
+	  Select id, name, phone, active, created FROM customers WHERE id = 1
+	  `).Scan(&customer.ID, &customer.Name, &customer.Phone, &customer.Active, &customer.Created)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	log.Printf("%#v", customer)
+
+	id := 1
+	newPhone := "+992000000099"
+	err = db.QueryRowContext(ctx, `
+	  UPDATE customers SET phone = $2 WHERE id = $1 RETURNING id, name, phone, active, created
+	  `, id, newPhone).Scan(&customer.ID, &customer.Name, &customer.Phone, &customer.Active, &customer.Created)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		log.Print("No rows")
+		return
+	}
+
+	if err != nil {
+		log.Print(err)
+		return
+	}
 }
 
 type Customer struct {
